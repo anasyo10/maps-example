@@ -1,11 +1,104 @@
-import Head from 'next/head'
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
-import styles from '@/styles/Home.module.css'
+import Head from "next/head";
+import GoogleMap from "google-maps-react-markers";
+import GoogleMapReact from "google-map-react";
+import { useEffect, useRef, useState } from "react";
+import Info from "./info";
+import mapOptions from "./map-options.json";
+import Marker from "./marker";
+import Image from "next/image";
+import { Inter } from "next/font/google";
+import styles from "@/styles/Home.module.css";
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
+
+const coordinates = [
+  [
+    {
+      lat: 45.4046987,
+      lng: 12.2472504,
+      name: "Venice",
+    },
+    {
+      lat: 41.9102415,
+      lng: 12.3959151,
+      name: "Rome",
+    },
+    {
+      lat: 45.4628328,
+      lng: 9.1076927,
+      name: "Milan",
+    },
+  ],
+  [
+    {
+      lat: 40.8518,
+      lng: 14.2681,
+      name: "Naples",
+    },
+    {
+      lat: 43.7696,
+      lng: 11.2558,
+      name: "Florence",
+    },
+    {
+      lat: 37.5023,
+      lng: 15.0873,
+      name: "Catania",
+    },
+  ],
+];
 
 export default function Home() {
+  const mapRef = useRef(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapBounds, setMapBounds] = useState({});
+  const [usedCoordinates, setUsedCoordinates] = useState(0);
+  const [currCoordinates, setCurrCoordinates] = useState(
+    coordinates[usedCoordinates]
+  );
+  const [highlighted, setHighlighted] = useState(null);
+
+  /**
+   * @description This function is called when the map is ready
+   * @param {Object} map - reference to the map instance
+   * @param {Object} maps - reference to the maps library
+   */
+  // eslint-disable-next-line no-unused-vars
+  const onGoogleApiLoaded = ({ map, maps }) => {
+    mapRef.current = map;
+    setMapReady(true);
+  };
+
+  // eslint-disable-next-line no-unused-vars
+  const onMarkerClick = (e, { markerId, lat, lng }) => {
+    setHighlighted(markerId);
+  };
+
+  const onMapChange = ({ bounds, zoom }) => {
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    /**
+     * useSupercluster accepts bounds in the form of [westLng, southLat, eastLng, northLat]
+     * const { clusters, supercluster } = useSupercluster({
+     *	points: points,
+     *	bounds: mapBounds.bounds,
+     *	zoom: mapBounds.zoom,
+     * })
+     */
+    setMapBounds({
+      ...mapBounds,
+      bounds: [sw.lng(), sw.lat(), ne.lng(), ne.lat()],
+      zoom,
+    });
+    setHighlighted(null);
+  };
+
+  const updateCoordinates = () => setUsedCoordinates(!usedCoordinates ? 1 : 0);
+
+  useEffect(() => {
+    setCurrCoordinates(coordinates[usedCoordinates]);
+  }, [usedCoordinates]);
+
   return (
     <>
       <Head>
@@ -14,101 +107,49 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className={`${styles.main} ${inter.className}`}>
-        <div className={styles.description}>
-          <p>
-            Get started by editing&nbsp;
-            <code className={styles.code}>src/pages/index.js</code>
-          </p>
-          <div>
-            <a
-              href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              By{' '}
-              <Image
-                src="/vercel.svg"
-                alt="Vercel Logo"
-                className={styles.vercelLogo}
-                width={100}
-                height={24}
-                priority
-              />
-            </a>
-          </div>
-        </div>
-
-        <div className={styles.center}>
-          <Image
-            className={styles.logo}
-            src="/next.svg"
-            alt="Next.js Logo"
-            width={180}
-            height={37}
-            priority
+      <main>
+        {mapReady && (
+          <Info
+            buttonAction={updateCoordinates}
+            coordinates={currCoordinates}
+            mapBounds={mapBounds}
           />
-        </div>
-
-        <div className={styles.grid}>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
+        )}
+        <div className="map-container">
+          <GoogleMap
+            apiKey="AIzaSyBxiNlIlDObbSXjyaNe24FpULq42xcKNCE"
+            defaultCenter={{ lat: 45.4046987, lng: 12.2472504 }}
+            defaultZoom={5}
+            options={mapOptions}
+            mapMinHeight="600px"
+            onGoogleApiLoaded={onGoogleApiLoaded}
+            onChange={onMapChange}
           >
-            <h2>
-              Docs <span>-&gt;</span>
-            </h2>
-            <p>
-              Find in-depth information about Next.js features and&nbsp;API.
-            </p>
-          </a>
-
-          <a
-            href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2>
-              Learn <span>-&gt;</span>
-            </h2>
-            <p>
-              Learn about Next.js in an interactive course with&nbsp;quizzes!
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2>
-              Templates <span>-&gt;</span>
-            </h2>
-            <p>
-              Discover and deploy boilerplate example Next.js&nbsp;projects.
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2>
-              Deploy <span>-&gt;</span>
-            </h2>
-            <p>
-              Instantly deploy your Next.js site to a shareable URL
-              with&nbsp;Vercel.
-            </p>
-          </a>
+            {currCoordinates.map(({ lat, lng, name }, index) => (
+              <Marker
+                key={index}
+                lat={lat}
+                lng={lng}
+                markerId={name}
+                onClick={onMarkerClick}
+                className="marker"
+                // draggable={true}
+                // onDragStart={(e, { latLng }) => {}}
+                // onDrag={(e, { latLng }) => {}}
+                // onDragEnd={(e, { latLng }) => {}}
+              />
+            ))}
+          </GoogleMap>
+          {highlighted && (
+            <div className="highlighted">
+              {highlighted}{" "}
+              <button type="button" onClick={() => setHighlighted(null)}>
+                X
+              </button>
+            </div>
+          )}
         </div>
       </main>
     </>
-  )
+  );
 }
